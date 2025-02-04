@@ -271,7 +271,7 @@ public class LCManager: NSObject, UIGestureRecognizerDelegate {
         consoleView.layer.shadowOffset = CGSize(width: 0, height: 2)
         consoleView.alpha = 0
         
-        consoleView.layer.cornerRadius = 24
+        consoleView.layer.cornerRadius = 20
         consoleView.layer.cornerCurve = .continuous
         
         let _ = lumaView
@@ -297,7 +297,9 @@ public class LCManager: NSObject, UIGestureRecognizerDelegate {
         consoleTextView.textContainerInset = UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10)
         
         consoleTextView.isSelectable = false
-        consoleTextView.showsVerticalScrollIndicator = false
+        consoleTextView.indicatorStyle = .white
+        consoleTextView.showsVerticalScrollIndicator = true
+        consoleTextView.scrollIndicatorInsets = UIEdgeInsets(top: 10, left: 0, bottom: 10, right: 0)
         consoleTextView.contentInsetAdjustmentBehavior = .never
         consoleView.addSubview(consoleTextView)
         
@@ -817,8 +819,8 @@ public class LCManager: NSObject, UIGestureRecognizerDelegate {
         if consoleTextView.contentOffset.y > consoleTextView.contentSize.height - consoleTextView.bounds.size.height - 20 {
             
             // Weird, weird fix that makes the scroll view bottom pinning system work.
-            consoleTextView.isScrollEnabled.toggle()
-            consoleTextView.isScrollEnabled.toggle()
+//            consoleTextView.isScrollEnabled.toggle()
+//            consoleTextView.isScrollEnabled.toggle()
             
             consoleTextView.pendingOffsetChange = true
         }
@@ -841,7 +843,7 @@ public class LCManager: NSObject, UIGestureRecognizerDelegate {
             .font: UIFont.systemFont(ofSize: fontSize, weight: .semibold, design: .monospaced)
         ]
         
-        consoleTextView.attributedText = NSAttributedString(string: string, attributes: attributes)
+        consoleTextView.setAttributedText(NSAttributedString(string: string, attributes: attributes))
     }
     
     // Displays all UserDefaults keys, including unneeded keys that are included by default.
@@ -872,6 +874,10 @@ public class LCManager: NSObject, UIGestureRecognizerDelegate {
             }
         }
         
+        let hide = UIAction(title: "Hide Console", image: UIImage(systemName: "eye.slash")) { [weak self] _ in
+            self?.isVisible = false
+        }
+
         // If device is phone in landscape, disable resize controller.
         if UIDevice.current.userInterfaceIdiom == .phone && consoleViewController.view.frame.width > consoleViewController.view.frame.height {
             resize.attributes = .disabled
@@ -1074,24 +1080,25 @@ public class LCManager: NSObject, UIGestureRecognizerDelegate {
         
         debugActions.append(contentsOf: [viewFrames, systemReport, displayReport])
         let destructActions = [terminateApplication , respring]
-        
-        let debugMenu = UIMenu(
-            title: "Debug", image: UIImage(systemName: "ant"),
-            children: [
-                UIMenu(title: "", options: .displayInline, children: debugActions),
-                UIMenu(title: "", options: .displayInline, children: destructActions),
-            ]
-        )
+
+        // 디버그 메뉴 숨김 처리
+//        let debugMenu = UIMenu(
+//            title: "Debug", image: UIImage(systemName: "ant"),
+//            children: [
+//                UIMenu(title: "", options: .displayInline, children: debugActions),
+//                UIMenu(title: "", options: .displayInline, children: destructActions),
+//            ]
+//        )
         
         var menuContent: [UIMenuElement] = []
         
         if consoleTextView.text != "" {
-            menuContent.append(contentsOf: [UIMenu(title: "", options: .displayInline, children: [share, resize])])
+            menuContent.append(contentsOf: [UIMenu(title: "", options: .displayInline, children: [share, resize, hide])])
         } else {
-            menuContent.append(UIMenu(title: "", options: .displayInline, children: [resize]))
+            menuContent.append(UIMenu(title: "", options: .displayInline, children: [resize, hide]))
         }
         
-        menuContent.append(debugMenu)
+//        menuContent.append(debugMenu)
         if let customMenu = menu {
             menuContent.append(customMenu)
         }
@@ -1469,13 +1476,20 @@ class LumaView: UIView {
 class InvertedTextView: UITextView {
     
     var pendingOffsetChange = false
-    
+
+    func setAttributedText(_ attributedText: NSAttributedString) {
+        self.attributedText = attributedText
+        self.layoutIfNeeded()
+    }
+
     // Thanks to WWDC21 UIKit Lab!
     override func layoutSubviews() {
         super.layoutSubviews()
         
         if panGestureRecognizer.numberOfTouches == 0 && pendingOffsetChange {
-            contentOffset.y = contentSize.height - bounds.size.height
+            DispatchQueue.main.async {
+                self.contentOffset.y = self.contentSize.height - self.bounds.size.height
+            }
         } else {
             pendingOffsetChange = false
         }
