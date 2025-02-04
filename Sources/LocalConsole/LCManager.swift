@@ -1406,7 +1406,7 @@ class LumaView: UIView {
             }
             
             pillView.setValue(2, forKey: "style")
-            pillView.setValue(1, forKey: "background" + "Luminance")
+//            pillView.setValue(1, forKey: "background" + "Luminance") // iOS 18.2 에서 크래시 발생 (workaround: https://github.com/duraidabdul/LocalConsole/issues/25)
             pillView.perform(NSSelectorFromString("_" + "update" + "Style"))
             
             addSubview(pillView)
